@@ -1,3 +1,4 @@
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Button,
@@ -5,57 +6,87 @@ import {
   TextInput,
   Alert,
   FlatList,
+  Text,
+  Pressable,
 } from "react-native";
 import { usarBD } from "./hooks/usarBD";
-import { Produto } from "./components/produto";
-import React, { useEffect, useState } from "react";
 
-export function Inicial() {
+function Produto({ data, selected, onPress, onDelete }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.card, selected ? styles.cardSelected : null]}
+    >
+      <Text style={styles.cardText}>{data.nome}</Text>
+      <Text style={styles.cardText}>Qtd: {data.quantidade}</Text>
+      <Button title="Excluir" onPress={onDelete} />
+    </Pressable>
+  );
+}
+
+export default function Inicial() {
   const [id, setId] = useState("");
   const [nome, setNome] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [pesquisa, setPesquisa] = useState("");
   const [produtos, setProdutos] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
 
   const produtosBD = usarBD();
 
-  async function create() {
+  const listar = useCallback(async () => {
+    const captura = await produtosBD.read(pesquisa);
+    setProdutos(captura);
+  }, [pesquisa]);
+
+  useEffect(() => {
+    listar();
+  }, [listar]);
+
+  const salvar = async () => {
+    if (!nome || !quantidade) return;
     if (isNaN(quantidade)) {
       return Alert.alert("Quantidade", "A quantidade precisa ser um número!");
     }
+
     try {
-      const item = await produtosBD.create({
-        nome,
-        quantidade: Number(quantidade),
-      });
-      Alert.alert("Produto cadastrado com o ID: " + item.idProduto);
-      setId(item.idProduto);
+      if (selectedId) {
+        await produtosBD.update(selectedId, {
+          nome,
+          quantidade: Number(quantidade),
+        });
+        Alert.alert("Produto atualizado!");
+      } else {
+        const item = await produtosBD.create({
+          nome,
+          quantidade: Number(quantidade),
+        });
+        setId(item.idProduto);
+        setSelectedId(item.idProduto);
+        Alert.alert("Produto cadastrado!");
+      }
       listar();
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-  async function listar() {
-    try {
-      const captura = await produtosBD.read(pesquisa);
-      setProdutos(captura);
-    } catch (error) {
-      console.log(error);
+  const remover = async (idProduto) => {
+    await produtosBD.remove(idProduto);
+    if (selectedId === idProduto) {
+      setSelectedId(null);
+      setId("");
+      setNome("");
+      setQuantidade("");
     }
-  }
-
-  useEffect(() => {
     listar();
-  }, [pesquisa]);
+  };
 
-  const remove = async (idProduto) => {
-    try {
-      await produtosBD.remove(idProduto);
-      await listar();
-    } catch (error) {
-      console.log(error);
-    }
+  const handleSelect = (item) => {
+    setSelectedId(item.idProduto);
+    setId(item.idProduto);
+    setNome(item.nome ?? "");
+    setQuantidade(String(item.quantidade ?? ""));
   };
 
   return (
@@ -63,30 +94,37 @@ export function Inicial() {
       <TextInput
         style={styles.texto}
         placeholder="Nome"
-        onChangeText={setNome}
         value={nome}
+        onChangeText={setNome}
       />
       <TextInput
         style={styles.texto}
         placeholder="Quantidade"
-        onChangeText={setQuantidade}
         value={quantidade}
+        onChangeText={setQuantidade}
+        keyboardType="numeric"
       />
-      <Button title="Salvar" onPress={create} />
+      <Button title={selectedId ? "Atualizar" : "Salvar"} onPress={salvar} />
 
       <TextInput
         style={styles.texto}
         placeholder="Pesquisar"
-        onChangeText={setPesquisa}
         value={pesquisa}
+        onChangeText={setPesquisa}
       />
 
       <FlatList
         contentContainerStyle={styles.listContent}
         data={produtos}
         keyExtractor={(item) => String(item.idProduto)}
+        extraData={selectedId}
         renderItem={({ item }) => (
-          <Produto data={item} onDelete={() => remove(item.idProduto)} />
+          <Produto
+            data={item}
+            selected={item.idProduto === selectedId}
+            onPress={() => handleSelect(item)}
+            onDelete={() => remover(item.idProduto)}
+          />
         )}
       />
     </View>
@@ -94,20 +132,26 @@ export function Inicial() {
 }
 
 const styles = StyleSheet.create({
-  listContent: {
-    gap: 16,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 32,
-    gap: 16,
-  },
+  container: { flex: 1, justifyContent: "center", padding: 16, gap: 12 },
   texto: {
     height: 54,
     borderWidth: 1,
-    borderRadius: 7,
+    borderRadius: 10,
     borderColor: "#999",
     paddingHorizontal: 16,
   },
+  listContent: { gap: 12, paddingBottom: 12 },
+  card: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: "#ccc",
+    backgroundColor: "#f9f9f9",
+  },
+  cardSelected: {
+    borderColor: "#4CAF50",
+    borderWidth: 2,
+    backgroundColor: "#e6ffe6",
+  },
+  cardText: { fontSize: 16, marginBottom: 4 },
 });
