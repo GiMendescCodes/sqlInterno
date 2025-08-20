@@ -1,4 +1,6 @@
-import { Inicial } from './inicial';
+import { Inicial } from "./inicial";
+import { SQLiteProvider } from "expo-sqlite";
+import { IniciarBD } from "./databases/iniciarBD";
 
 export default function App() {
   return (
@@ -6,4 +8,4 @@ export default function App() {
       <Inicial />
     </SQLiteProvider>
   );
-};
+}

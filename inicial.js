@@ -7,7 +7,7 @@ import {
   FlatList,
 } from "react-native";
 import { usarBD } from "./hooks/usarBD";
-import { Produto } from "./components/Produto";
+import { Produto } from "./components/produto";
 import React, { useEffect, useState } from "react";
 
 export function Inicial() {
@@ -49,9 +49,9 @@ export function Inicial() {
     listar();
   }, [pesquisa]);
 
-  const remove = async (id) => {
+  const remove = async (idProduto) => {
     try {
-      await produtosBD.remove(id);
+      await produtosBD.remove(idProduto);
       await listar();
     } catch (error) {
       console.log(error);

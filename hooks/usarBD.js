@@ -14,8 +14,7 @@ export function usarBD() {
         $quantidade: dados.quantidade,
       });
 
-      const idProduto = result.lastInsertRowId.toLocaleString();
-
+      const idProduto = result.lastInsertRowId; // mantém como número
       return { idProduto };
     } catch (error) {
       throw error;
@@ -26,7 +25,9 @@ export function usarBD() {
 
   async function read(nome) {
     try {
-      const consulta = "SELECT * FROM produtos WHERE nome LIKE ?";
+      // renomeia id para idProduto
+      const consulta =
+        "SELECT id as idProduto, nome, quantidade FROM produtos WHERE nome LIKE ?";
       const resposta = await bd.getAllAsync(consulta, `%${nome}%`);
       return resposta;
     } catch (error) {
@@ -34,9 +35,9 @@ export function usarBD() {
     }
   }
 
-  async function remove(id) {
+  async function remove(idProduto) {
     try {
-      await bd.execAsync("DELETE FROM produtos WHERE id = " + id);
+      await bd.execAsync("DELETE FROM produtos WHERE id = " + idProduto);
     } catch (error) {
       throw error;
     }
